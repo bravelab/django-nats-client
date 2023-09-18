@@ -1,12 +1,9 @@
 import asyncio
-import json
 
-import jsonpickle
 import nats.errors
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
-from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import autoreload
 from nats.aio.client import Client
 from nats.aio.errors import ErrNoServers
@@ -87,20 +84,18 @@ class Command(BaseCommand):
             )
 
         async def callback(msg: Msg):
-            data = msg.data.decode()
             reply = msg.reply
             func_name = msg.subject
-            print(f'Received a message on function `{func_name}`: {data}')
-            asyncio.ensure_future(self.handler(func_name, data, reply=reply))
+            print(f'Received a message on function `{func_name}`: {msg.data.decode()}')
+            asyncio.ensure_future(self.handler(func_name, msg.data, reply=reply))
 
         async def fetch(psub):
             try:
                 msgs = await psub.fetch(timeout=1)
                 for msg in msgs:
-                    data = msg.data.decode()
                     func_name = msg.subject
-                    print(f'Received a message on JetStream function `{func_name}`: {data}')
-                    asyncio.ensure_future(self.handler(func_name, data))
+                    print(f'Received a message on JetStream function `{func_name}`: {msg.data.decode()}')
+                    asyncio.ensure_future(self.handler(func_name, msg.data))
                     await msg.ack()
             except nats.errors.TimeoutError:
                 pass
@@ -124,31 +119,8 @@ class Command(BaseCommand):
                 await self.nats.subscribe(full_name, cb=callback)
             print(f'     - {full_name}' + (' (JetStream)' if data['js'] else ''))
 
-    async def handler(self, func_name: str, body, reply=None):
-        try:
-            data = json.loads(body)
-            r = await nats_handler(func_name, data)
-        except Exception as e:  # pylint: disable=broad-except
-            if reply:
-                if isinstance(e, ValidationError):
-                    message = e.message_dict
-                else:
-                    message = str(e)
-                    try:
-                        message = json.loads(message)
-                    except json.JSONDecodeError:
-                        pass
-
-                await self.nats.publish(
-                    reply,
-                    json.dumps({
-                        'success': False,
-                        'error': e.__class__.__name__,
-                        'message': message,
-                        'pickled_exc': jsonpickle.encode(e),
-                    }).encode()
-                )
-            raise e
+    async def handler(self, func_name: str, body: bytes, reply=None):
+        r = await nats_handler(func_name, body)
 
         if reply:
-            await self.nats.publish(reply, json.dumps({'success': True, 'result': r}, cls=DjangoJSONEncoder).encode())
+            await self.nats.publish(reply, r)
