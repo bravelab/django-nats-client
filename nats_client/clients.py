@@ -39,21 +39,6 @@ async def request(
     finally:
         await nc.close()
 
-    # data = response.data.decode()
-    # parsed = json.loads(data)
-
-    # if _raw:
-    #     parsed.pop('pickled_exc', None)
-    #     return parsed
-
-    # if not parsed['success']:
-    #     try:
-    #         exc = jsonpickle.decode(parsed['pickled_exc'])
-    #     except TypeError:
-    #         exc = NatsClientException(parsed['error'] + ': ' + parsed['message'])
-    #
-    #     raise exc
-
     return response.data
 
 

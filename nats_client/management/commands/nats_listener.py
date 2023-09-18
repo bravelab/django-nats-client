@@ -2,7 +2,6 @@ import asyncio
 
 import nats.errors
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
 from django.utils import autoreload
 from nats.aio.client import Client
