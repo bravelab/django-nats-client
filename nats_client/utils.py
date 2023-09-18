@@ -1,16 +1,5 @@
-import json
-
 from asgiref.sync import SyncToAsync
-from django.core.serializers.json import DjangoJSONEncoder
 from django.db import close_old_connections
-
-
-def parse_arguments(args: tuple, kwargs: dict) -> bytes:
-    msg = {
-        'args': args,
-        'kwargs': kwargs,
-    }
-    return json.dumps(msg, cls=DjangoJSONEncoder).encode()
 
 
 # pylint: disable=invalid-name

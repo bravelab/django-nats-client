@@ -4,10 +4,7 @@ from .registry import default_registry
 from .utils import database_sync_to_async
 
 
-async def nats_handler(key: str, data):
-    args = data['args']
-    kwargs = data['kwargs']
-
+async def nats_handler(key: str, payload: bytes):
     data = default_registry.registry.get(key)
     if data is None:
         raise ValueError(f'No function found for `{key}`')
@@ -16,4 +13,4 @@ async def nats_handler(key: str, data):
     if not asyncio.iscoroutinefunction(func):
         func = database_sync_to_async(func)
 
-    return await func(*args, **kwargs)
+    return await func(payload)

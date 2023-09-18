@@ -2,15 +2,11 @@ __all__ = ['request', 'request_sync', 'publish', 'publish_sync', 'js_publish', '
 
 import asyncio
 import functools
-import json
 
-import jsonpickle
 from django.conf import settings
 from nats.aio.client import Client
 
-from .exceptions import NatsClientException
 from .types import ResponseType
-from .utils import parse_arguments
 
 DEFAULT_REQUEST_TIMEOUT = 1
 
@@ -28,9 +24,12 @@ async def get_nc_client(nc: Client = None):
 
 
 async def request(
-        namespace: str, method_name: str, *args, _timeout: float = None, _raw=False, **kwargs
+    namespace: str,
+    method_name: str,
+    payload: bytes,
+    _timeout: float = None,
+    _raw=False,
 ) -> ResponseType:
-    payload = parse_arguments(args, kwargs)
 
     nc = await get_nc_client()
 
@@ -40,31 +39,19 @@ async def request(
     finally:
         await nc.close()
 
-    data = response.data.decode()
-    parsed = json.loads(data)
-
-    if _raw:
-        parsed.pop('pickled_exc', None)
-        return parsed
-
-    if not parsed['success']:
-        try:
-            exc = jsonpickle.decode(parsed['pickled_exc'])
-        except TypeError:
-            exc = NatsClientException(parsed['error'] + ': ' + parsed['message'])
-
-        raise exc
-
-    return parsed['result']
+    return response.data
 
 
 def request_sync(*args, **kwargs):
     return asyncio.run(request(*args, **kwargs))
 
 
-async def publish(namespace: str, method_name: str, *args, _js=False, **kwargs) -> None:
-    payload = parse_arguments(args, kwargs)
-
+async def publish(
+    namespace: str,
+    method_name: str,
+    payload: bytes,
+    _js=False,
+) -> None:
     nc = await get_nc_client()
 
     try:
