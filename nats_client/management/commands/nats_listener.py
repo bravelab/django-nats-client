@@ -86,7 +86,7 @@ class Command(BaseCommand):
         async def callback(msg: Msg):
             reply = msg.reply
             func_name = msg.subject
-            print(f'Received a message on function `{func_name}`: {msg.data.decode()}')
+            print(f'Received a message on function `{func_name}`')
             asyncio.ensure_future(self.handler(func_name, msg.data, reply=reply))
 
         async def fetch(psub):
@@ -94,7 +94,7 @@ class Command(BaseCommand):
                 msgs = await psub.fetch(timeout=1)
                 for msg in msgs:
                     func_name = msg.subject
-                    print(f'Received a message on JetStream function `{func_name}`: {msg.data.decode()}')
+                    print(f'Received a message on JetStream function `{func_name}`')
                     asyncio.ensure_future(self.handler(func_name, msg.data))
                     await msg.ack()
             except nats.errors.TimeoutError:
