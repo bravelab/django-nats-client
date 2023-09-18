@@ -37,7 +37,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         reload = options.get('reload', False)
-        print('!!** Starting NATS listener' + (' with reload enabled' if reload else ''))
+        print('** Starting NATS listener' + (' with reload enabled' if reload else ''))
         if reload:
             autoreload.run_with_reloader(self.inner_run, *args, **options)
         else:
